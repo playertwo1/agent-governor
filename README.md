@@ -2,7 +2,7 @@
 
 Camada universal e determinística de governança para agentes de programação. O agente pode **propor** uma ação; o Governor decide se ela pode ser executada.
 
-> Estado: **v0.1.1/v0.3 (núcleo funcional)**. Integração inicial: Google Antigravity `PreToolUse`. Já existem contratos persistentes, circuit breaker SQLite, recibos fingerprintados, perfis iniciais e diagnóstico/instalação local. Adapters específicos para Codex e Claude continuam no roadmap.
+> Estado: **v1.0.0 (release local instalável)**. Integração suportada: Google Antigravity `PreToolUse`. Inclui contratos persistentes, circuit breaker SQLite, recibos fingerprintados, perfis iniciais, auditoria estruturada, diagnóstico, instalação e remoção segura. Adapters específicos para Codex e Claude continuam fora da matriz suportada desta release.
 
 ## Por que existe
 
@@ -121,12 +121,12 @@ Os projetos `roboticforce/agent-guardrails`, `laundromatic/agent-guardrails` e `
 
 ## Roadmap resumido
 
-- **v0.1:** motor fail-closed, contrato, Antigravity hook, scope check, log e circuit breaker.
-- **v0.2:** recibos de testes/evidências, perfis Android/Python/Node/n8n, hashes assinados e instalador seguro.
-- **v0.3:** adapters oficiais para Codex/Claude/Gemini CLI, auditoria estruturada e CI reutilizável.
-- **v1.0:** policy bundles assinados, armazenamento externo append-only e isolamento do Governor fora do workspace.
+- **v1.0.0 entregue:** motor fail-closed, contrato, Antigravity hook, scope check, log, circuit breaker, recibos, perfis, auditoria e instalador.
+- **Pós-v1.0:** bundles assinados, armazenamento externo append-only, isolamento forte e adapters adicionais.
 
 Veja [ROADMAP.md](docs/ROADMAP.md) e [ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+O passo a passo completo para instalar em novos projetos está em [INSTALL.md](docs/INSTALL.md). O histórico da release está em [CHANGELOG.md](CHANGELOG.md).
 
 ## Licença
 
