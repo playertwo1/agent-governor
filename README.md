@@ -2,7 +2,7 @@
 
 Camada universal e determinística de governança para agentes de programação. O agente pode **propor** uma ação; o Governor decide se ela pode ser executada.
 
-> Estado: **v0.1 (fundação funcional)**. Integração inicial: Google Antigravity `PreToolUse`. A arquitetura de normalização já aceita payloads no estilo Claude; instaladores específicos para Codex e Claude estão no roadmap.
+> Estado: **v0.1.1/v0.3 (núcleo funcional)**. Integração inicial: Google Antigravity `PreToolUse`. Já existem contratos persistentes, circuit breaker SQLite, recibos fingerprintados, perfis iniciais e diagnóstico/instalação local. Adapters específicos para Codex e Claude continuam no roadmap.
 
 ## Por que existe
 
@@ -80,7 +80,7 @@ O contrato oficial do Antigravity aceita `allow`, `deny`, `ask`, `force_ask` e `
 governor verify --base HEAD~1
 ```
 
-O comando bloqueia a aprovação quando o diff excede `max_files_changed` ou contém arquivos fora de `allowed_paths`. Na v0.2 ele também exigirá recibos verificáveis dos comandos de teste.
+O comando bloqueia a aprovação quando o diff excede `max_files_changed` ou contém arquivos fora de `allowed_paths`. O comando `validate` executa os comandos declarados e grava recibos fingerprintados em `.governor/evidence/`; alterações posteriores invalidam a prova.
 
 ## Segurança e limites da v0.1
 
