@@ -54,4 +54,7 @@ def write_templates(root: Path, profile: str = "generic") -> None:
         target = directory / name
         if not target.exists():
             target.write_text(json.dumps(value, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    runtime_ignore = directory / ".gitignore"
+    if not runtime_ignore.exists():
+        runtime_ignore.write_text("state.db\nviolations.jsonl\nevidence/\n", encoding="utf-8")
     (directory / "violations.jsonl").touch(exist_ok=True)
