@@ -13,6 +13,12 @@ class ConfigurationError(ValueError):
     """Raised when a governance document is syntactically valid but unsafe."""
 
 
+KNOWN_TOOLS = {
+    "run_command", "write_to_file", "replace_file_content", "multi_replace_file_content",
+    "view_file", "list_dir", "find_by_name", "grep_search", "Write", "Edit", "MultiEdit", "Read",
+}
+
+
 @dataclass(frozen=True)
 class Decision:
     decision: str
@@ -60,6 +66,8 @@ def validate_documents(policy: dict[str, Any], contract: dict[str, Any]) -> None
         raise ConfigurationError("forbidden_paths must be a list of strings")
     if not isinstance(contract.get("max_files_changed"), int) or contract["max_files_changed"] < 0:
         raise ConfigurationError("max_files_changed must be a non-negative integer")
+    if not isinstance(contract.get("required_commands", []), list) or not all(isinstance(x, str) and x.strip() for x in contract.get("required_commands", [])):
+        raise ConfigurationError("required_commands must be a list of non-empty strings")
 
 
 def append_event(root: Path, event: dict[str, Any]) -> None:
@@ -78,6 +86,18 @@ def _matches(value: str, patterns: list[str]) -> bool:
     return any(re.search(pattern, value, re.IGNORECASE) for pattern in patterns)
 
 
+def _safe_relative(root: Path, value: str) -> str | None:
+    if not value:
+        return None
+    candidate = Path(value)
+    if not candidate.is_absolute():
+        candidate = root / candidate
+    try:
+        return str(candidate.resolve(strict=False).relative_to(root.resolve())).replace("\\", "/")
+    except (ValueError, OSError, RuntimeError):
+        return None
+
+
 def evaluate(root: Path, action: dict[str, str]) -> Decision:
     policy_path = root / ".governor" / "policy.json"
     contract_path = root / ".governor" / "task-contract.json"
@@ -91,21 +111,28 @@ def evaluate(root: Path, action: dict[str, str]) -> Decision:
     except (OSError, ValueError, TypeError) as exc:
         return Decision("deny", f"Governor configuration is invalid: {exc}", "CFG-002")
 
+    if not isinstance(action, dict) or not all(isinstance(action.get(key, ""), str) for key in ("tool", "command", "path")):
+        return Decision("deny", "Action payload has invalid types.", "INPUT-001")
     command = action.get("command", "")
-    path = action.get("path", "").replace("\\", "/")
+    raw_path = action.get("path", "")
     tool = action.get("tool", "unknown")
+
+    if tool not in KNOWN_TOOLS:
+        return Decision("deny", f"Unknown tool is blocked by default: {tool}", "TOOL-001")
 
     for rule in policy.get("command_rules", []):
         if command and _matches(command, rule.get("patterns", [])):
             return Decision(rule["decision"], rule["reason"], rule["id"])
 
-    if path:
-        relative = path
-        try:
-            relative = str(Path(path).resolve().relative_to(root.resolve())).replace("\\", "/")
-        except ValueError:
+    if command and tool == "run_command" and _matches(command, [r"(^|[;&|]\s*)(?:cat|tee|printf|echo)\s+[^\n]*>", r"\bsed\s+-[^\n]*i(?:\s|$)", r"\bperl\s+-[^\n]*-i(?:\s|$)", r"\bpython(?:3)?\s+-c\b"]):
+        return Decision("deny", "Shell based file mutation is blocked; use a governed file tool.", "SHELL-001")
+
+    if raw_path:
+        relative = _safe_relative(root, raw_path)
+        if relative is None:
             if tool in policy.get("write_tools", []):
-                return Decision("deny", "Writes outside the project are forbidden.", "SCOPE-001")
+                return Decision("deny", "Path is outside the project or resolves through an unsafe link.", "SCOPE-001")
+            return Decision("deny", "Path cannot be resolved safely.", "SCOPE-004")
 
         if tool in policy.get("write_tools", []):
             if contract.get("task_id") in (None, "", "UNSET"):
@@ -117,7 +144,7 @@ def evaluate(root: Path, action: dict[str, str]) -> Decision:
             if any(fnmatch.fnmatch(relative, pattern) for pattern in forbidden):
                 return Decision("deny", f"Task contract forbids this path: {relative}", "SCOPE-003")
             allowed = contract.get("allowed_paths", [])
-            if allowed and not any(fnmatch.fnmatch(relative, pattern) for pattern in allowed):
+            if not allowed or not any(fnmatch.fnmatch(relative, pattern) for pattern in allowed):
                 return Decision("deny", f"Path is outside the active task contract: {relative}", "SCOPE-002")
 
     return Decision(policy.get("default_decision", "ask"), "No explicit rule matched.", "DEFAULT")
