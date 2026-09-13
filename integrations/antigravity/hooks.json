@@ -1,0 +1,18 @@
+{
+  "agent-governor": {
+    "enabled": true,
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "governor hook --root .",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
+
