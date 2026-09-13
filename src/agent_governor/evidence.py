@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import shlex
 import subprocess
 import time
@@ -47,7 +48,7 @@ def run_required(root: Path, task_id: str, commands: list[str], timeout: int = 9
     for command in commands:
         started = time.monotonic()
         try:
-            completed = subprocess.run(shlex.split(command), cwd=root, capture_output=True, text=True, timeout=timeout, check=False)
+            completed = subprocess.run(shlex.split(command, posix=(os.name != "nt")), cwd=root, capture_output=True, text=True, timeout=timeout, check=False)
             result = {"command": command, "returncode": completed.returncode, "duration_seconds": round(time.monotonic() - started, 3), "stdout_sha256": hashlib.sha256(completed.stdout.encode()).hexdigest(), "stderr_sha256": hashlib.sha256(completed.stderr.encode()).hexdigest()}
             if completed.returncode != 0:
                 all_passed = False
