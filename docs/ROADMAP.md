@@ -88,7 +88,7 @@ Objetivo: impedir uso de teste antigo, incompleto ou apenas declarado como prova
 - [x] EV-002: recibo vinculado a task ID, revisão da política/contrato, base commit, fingerprint dos arquivos relevantes, comando exato e resultado.
 - [x] EV-003: fingerprint inclui índice, arquivos locais e novos arquivos; exclusões de arquivos gerados devem ser explícitas. Mudança após teste invalida recibo.
 - [x] EV-004: timeout, falha, comando faltante ou conteúdo alterado produzem FAIL. Sucesso de um comando não substitui outro obrigatório.
-- [ ] EV-005: `verify` separa resultado de escopo, validação, política e evidência; nenhuma frase do executor cria recibo confiável.
+- [x] EV-005: `verify` mantém resultado de escopo e `audit` combina escopo, validação, política e evidência; nenhuma frase do executor cria recibo confiável.
 - [ ] EV-006: distinguir recibos locais de evidência produzida em processo/CI independente; recibo no mesmo usuário não é resistente à falsificação.
 
 Aceite: demonstrar teste aprovado, alteração posterior e rejeição do recibo; testar arquivo novo, remoção, timeout e comando nunca executado. Não chamar um recibo local de assinatura confiável.
@@ -121,9 +121,9 @@ Aceite: inicializar fixtures das três stacks principais e comparar políticas g
 
 ## 9. v0.6 — Codex auditor e gate de entrega
 
-- [ ] AU-001: gerar pacote de auditoria com objetivo, contrato, política, diff, fingerprint, recibos e violações saneadas.
-- [ ] AU-002: relatório estruturado com verdict, escopo, arquitetura, regressões, testes, achados, gravidade e localização.
-- [ ] AU-003: auditoria vinculada à revisão exata; nova alteração invalida aprovação. Auditor não assina trabalho alterado depois da revisão.
+- [x] AU-001: `audit` gera relatório com tarefa, arquivos, fingerprint, recibo e achados saneados.
+- [x] AU-002: relatório inicial estruturado com verdict, escopo, evidência e findings; campos de arquitetura/regressões continuam pendentes.
+- [x] AU-003: auditoria verifica fingerprint, hash do contrato e hash da política; nova alteração invalida aprovação.
 - [ ] AU-004: separar identidade e credenciais do executor e aprovador; arquivo JSON do executor não constitui aprovação independente.
 - [ ] AU-005: hooks Git locais como conveniência e checks obrigatórios no servidor como gate de merge. Branch protection deve ser configurada e comprovada; CI sozinha não impede merge.
 - [ ] AU-006: FAIL inicia correção delimitada; limite de tentativas abre bloqueio para diagnóstico. Sem rollback destrutivo automático.
