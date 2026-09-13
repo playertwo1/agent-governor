@@ -35,6 +35,17 @@ def project_fingerprint(root: Path) -> str:
     return digest.hexdigest()
 
 
+def latest_receipt(root: Path, task_id: str) -> dict | None:
+    directory = root / ".governor" / "evidence" / task_id
+    receipts = sorted(directory.glob("*.json")) if directory.is_dir() else []
+    if not receipts:
+        return None
+    try:
+        return json.loads(receipts[-1].read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+
+
 def run_required(root: Path, task_id: str, commands: list[str], timeout: int = 900) -> tuple[dict, bool]:
     if not commands:
         return {"task_id": task_id, "status": "FAIL", "reason": "No required commands are declared."}, False
