@@ -31,6 +31,24 @@ class GovernorTests(unittest.TestCase):
         result = evaluate(self.root, {"tool": "run_command", "command": "git status", "path": ""})
         self.assertEqual("deny", result.decision)
 
+    def test_invalid_schema_fails_closed(self):
+        policy = self.root / ".governor" / "policy.json"
+        value = json.loads(policy.read_text())
+        value["schema_version"] = 999
+        policy.write_text(json.dumps(value))
+        result = evaluate(self.root, {"tool": "run_command", "command": "git status", "path": ""})
+        self.assertEqual("deny", result.decision)
+        self.assertEqual("CFG-002", result.rule_id)
+
+    def test_invalid_regex_fails_closed(self):
+        policy = self.root / ".governor" / "policy.json"
+        value = json.loads(policy.read_text())
+        value["command_rules"][0]["patterns"] = ["["]
+        policy.write_text(json.dumps(value))
+        result = evaluate(self.root, {"tool": "run_command", "command": "git status", "path": ""})
+        self.assertEqual("deny", result.decision)
+        self.assertEqual("CFG-002", result.rule_id)
+
     def test_blocks_governor_self_edit(self):
         contract_path = self.root / ".governor" / "task-contract.json"
         contract = json.loads(contract_path.read_text())
