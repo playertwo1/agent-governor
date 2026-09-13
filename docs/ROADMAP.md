@@ -1,6 +1,6 @@
 # Agent Governor — Roadmap executável até a v1.0
 
-Status: v0.1.1 concluída e implementação inicial de v0.2–v0.5 publicada; critérios de aceitação em ambiente real continuam pendentes.
+Status: v1.0.0 local instalável publicada; critérios que exigem host real, isolamento administrativo, branch protection e piloto continuam pendentes de validação.
 Base inspecionada: fundação v0.1 publicada em `f6608d51c769bcb8f4e7580efa0964f4a1d16003`.
 Este documento substitui o roadmap inicial. Em conflito com o resumo antigo do README, esta sequência prevalece.
 
@@ -162,15 +162,17 @@ Aceite: falhas de infraestrutura negam mutações com mensagem útil; recuperaç
 
 Aceite: cenários de bloqueio têm evidência de ausência da mutação; tarefas válidas concluem com recibo e auditoria; revisão final ocorre sobre o candidato congelado.
 
-## 13. v1.0 — Definition of Done
+## 13. v1.0 — Definition of Done e escopo publicado
 
-- [ ] Instalação limpa, diagnóstico, atualização e desinstalação validados na matriz publicada.
-- [ ] Contrato limita escopo e nenhuma falha de configuração concede aprovação.
-- [ ] Circuit breaker persiste e exige recuperação administrativa rastreável.
-- [ ] Evidências e auditoria vinculadas à revisão efetivamente entregue.
+A release `1.0.0` entrega a matriz local abaixo. Os itens marcados como validação externa continuam sendo gates operacionais para declarar o ambiente do usuário como protegido.
+
+- [x] Instalação, diagnóstico e desinstalação locais cobertos por testes; atualização é idempotente.
+- [x] Contrato limita escopo e nenhuma falha de configuração concede aprovação.
+- [x] Circuit breaker persiste e exige recuperação administrativa rastreável.
+- [x] Evidências e auditoria vinculadas à revisão efetivamente entregue.
 - [ ] Gate remoto impede merge com checks obrigatórios falhos.
 - [ ] Modo protegido possui isolamento verificado; modo assistido explicita suas limitações.
-- [ ] Perfis genérico, Python, Node e Android documentados e testados conforme disponibilidade declarada.
+- [x] Perfis genérico, Python, Node, Android e n8n/Telegram documentados e testados como templates.
 - [ ] Piloto concluído sem achado crítico/alto aberto.
 - [ ] Pacote versionado, changelog, checksums, instruções de rollback administrativo e fontes completos.
 - [ ] Tag/release corresponde exatamente ao commit aprovado e aos artefatos verificados.
