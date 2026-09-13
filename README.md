@@ -82,6 +82,14 @@ governor verify --base HEAD~1
 
 O comando bloqueia a aprovação quando o diff excede `max_files_changed` ou contém arquivos fora de `allowed_paths`. O comando `validate` executa os comandos declarados e grava recibos fingerprintados em `.governor/evidence/`; alterações posteriores invalidam a prova.
 
+Depois da validação, gere o pacote que o Codex deve revisar:
+
+```bash
+governor audit --base HEAD
+```
+
+O resultado é JSON com tarefa, arquivos alterados, recibo de evidência e achados. `PASS` significa que os gates determinísticos passaram; ainda é necessária a revisão técnica do Codex.
+
 ## Segurança e limites da v0.1
 
 - A proteção é tão forte quanto o isolamento do executável e dos arquivos de política. Para uso rigoroso, mantenha a política mestre fora do workspace e somente leitura para o agente.
