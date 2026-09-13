@@ -70,6 +70,14 @@ def validate_documents(policy: dict[str, Any], contract: dict[str, Any]) -> None
         raise ConfigurationError("required_commands must be a list of non-empty strings")
 
 
+def validate_profile(profile: dict[str, Any]) -> None:
+    if profile.get("schema_version") != 1 or not isinstance(profile.get("name"), str) or not profile["name"]:
+        raise ConfigurationError("invalid project profile")
+    for field in ("stack", "test_commands", "protected_areas"):
+        if not isinstance(profile.get(field, []), list) or not all(isinstance(x, str) for x in profile.get(field, [])):
+            raise ConfigurationError(f"profile {field} must be a list of strings")
+
+
 def append_event(root: Path, event: dict[str, Any]) -> None:
     log = root / ".governor" / "violations.jsonl"
     log.parent.mkdir(parents=True, exist_ok=True)
@@ -108,6 +116,11 @@ def evaluate(root: Path, action: dict[str, str]) -> Decision:
         policy = load_json(policy_path)
         contract = load_json(contract_path)
         validate_documents(policy, contract)
+        profile_path = root / ".governor" / "project-profile.json"
+        if not profile_path.exists():
+            return Decision("deny", "Project profile is missing; refusing to fail open.", "CFG-003")
+        profile = load_json(profile_path)
+        validate_profile(profile)
     except (OSError, ValueError, TypeError) as exc:
         return Decision("deny", f"Governor configuration is invalid: {exc}", "CFG-002")
 
@@ -137,7 +150,7 @@ def evaluate(root: Path, action: dict[str, str]) -> Decision:
         if tool in policy.get("write_tools", []):
             if contract.get("task_id") in (None, "", "UNSET"):
                 return Decision("deny", "Define an active task contract before writing files.", "TASK-001")
-            protected = policy.get("protected_paths", [])
+            protected = policy.get("protected_paths", []) + profile.get("protected_areas", [])
             if any(fnmatch.fnmatch(relative, pattern) for pattern in protected):
                 return Decision("deny", f"Protected governance path: {relative}", "SELF-001")
             forbidden = contract.get("forbidden_paths", [])
