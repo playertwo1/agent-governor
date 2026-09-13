@@ -19,17 +19,20 @@ def hook(args: argparse.Namespace) -> int:
     root = root_path(args.root)
     try:
         payload = json.load(sys.stdin)
-    except ValueError as exc:
+    except (ValueError, TypeError) as exc:
         print(json.dumps({"decision": "deny", "reason": f"Invalid hook input: {exc}"}))
         return 2
-    action = normalize(payload)
-    result = evaluate(root, action)
-    if result.decision == "deny":
-        append_event(root, {**result.as_dict(), "action": action})
-        policy = load_json(root / ".governor" / "policy.json")
-        maximum = policy.get("circuit_breaker", {}).get("max_same_rule_violations", 2)
-        if violation_count(root, result.rule_id) >= maximum:
-            result = type(result)("deny", f"Circuit breaker open after repeated {result.rule_id} violations. Human review required.", "CIRCUIT-001")
+    try:
+        action = normalize(payload)
+        result = evaluate(root, action)
+        if result.decision == "deny":
+            append_event(root, {**result.as_dict(), "action": {"tool": action.get("tool"), "has_command": bool(action.get("command")), "has_path": bool(action.get("path"))}})
+            policy = load_json(root / ".governor" / "policy.json")
+            maximum = policy.get("circuit_breaker", {}).get("max_same_rule_violations", 2)
+            if violation_count(root, result.rule_id) >= maximum:
+                result = type(result)("deny", f"Circuit breaker open after repeated {result.rule_id} violations. Human review required.", "CIRCUIT-001")
+    except Exception:
+        result = type("SafeDecision", (), {"decision": "deny", "rule_id": "INTERNAL-001", "reason": "Governor failed safely; human review required."})()
     print(json.dumps(antigravity_output(result.decision, f"[{result.rule_id}] {result.reason}"), ensure_ascii=False))
     return 2 if result.decision == "deny" else 0
 
