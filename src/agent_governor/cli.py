@@ -13,7 +13,7 @@ from .adapters import antigravity_output, normalize
 from .engine import append_event, evaluate, load_json, violation_count
 from .templates import write_templates
 from .state import TaskState
-from .evidence import run_required
+from .evidence import latest_receipt, project_fingerprint, run_required
 
 
 def root_path(value: str = ".") -> Path:
@@ -81,6 +81,8 @@ def verify(args: argparse.Namespace) -> int:
     issues = []
     allowed = contract.get("allowed_paths", [])
     for name in changed:
+        if name.startswith(".governor/") or name == ".agents/hooks.json":
+            continue
         if any(fnmatch.fnmatch(name, pattern) for pattern in contract.get("forbidden_paths", [])):
             issues.append(f"forbidden path: {name}")
         if not allowed or not any(fnmatch.fnmatch(name, pattern) for pattern in allowed):
@@ -110,6 +112,12 @@ def task_command(args: argparse.Namespace) -> int:
             state.transition(args.task_id, "ACTIVE")
             print(json.dumps({"task_id": args.task_id, "status": "ACTIVE"}, ensure_ascii=False))
             return 0
+        if args.task_action == "transition":
+            if not args.status:
+                raise ValueError("--status is required for task transition")
+            state.transition(args.task_id, args.status)
+            print(json.dumps({"task_id": args.task_id, "status": args.status}, ensure_ascii=False))
+            return 0
         print(json.dumps(state.inspect(args.task_id), ensure_ascii=False, indent=2))
         return 0
     except Exception as exc:
@@ -125,6 +133,10 @@ def validate_command(args: argparse.Namespace) -> int:
         if task_id in ("", "UNSET"):
             print(json.dumps({"status": "FAIL", "reason": "No active task contract."}, ensure_ascii=False))
             return 1
+        task_state = TaskState(root / ".governor" / "state.db")
+        if task_state.inspect(task_id)["status"] != "ACTIVE":
+            print(json.dumps({"status": "FAIL", "reason": "Task must be ACTIVE before validation."}, ensure_ascii=False))
+            return 1
         receipt, passed = run_required(root, task_id, contract.get("required_commands", []), args.timeout)
         if passed:
             try:
@@ -135,6 +147,54 @@ def validate_command(args: argparse.Namespace) -> int:
         return 0 if passed else 1
     except Exception as exc:
         print(json.dumps({"status": "FAIL", "reason": "Validation failed safely.", "error_type": type(exc).__name__}, ensure_ascii=False))
+        return 1
+
+
+def audit_command(args: argparse.Namespace) -> int:
+    root = root_path(args.root)
+    try:
+        contract = load_json(root / ".governor" / "task-contract.json")
+        task_id = contract.get("task_id", "")
+        state = TaskState(root / ".governor" / "state.db")
+        task = state.inspect(task_id) if task_id not in ("", "UNSET") else None
+        receipt = latest_receipt(root, task_id) if task_id else None
+        findings = []
+        diff = subprocess.run(["git", "diff", "--name-only", "-z", args.base, "--"], cwd=root, capture_output=True, check=False)
+        untracked = subprocess.run(["git", "ls-files", "--others", "--exclude-standard", "-z"], cwd=root, capture_output=True, check=False)
+        if diff.returncode != 0 or untracked.returncode != 0:
+            findings.append("cannot inspect Git diff")
+            changed = []
+        else:
+            changed = sorted(set([x for x in diff.stdout.decode(errors="surrogateescape").split("\0") if x] + [x for x in untracked.stdout.decode(errors="surrogateescape").split("\0") if x]))
+            allowed = contract.get("allowed_paths", [])
+            forbidden = contract.get("forbidden_paths", [])
+            for name in changed:
+                if name.startswith(".governor/") or name == ".agents/hooks.json":
+                    continue
+                if any(fnmatch.fnmatch(name, pattern) for pattern in forbidden):
+                    findings.append(f"forbidden path: {name}")
+                if not allowed or not any(fnmatch.fnmatch(name, pattern) for pattern in allowed):
+                    findings.append(f"outside scope: {name}")
+            if len(changed) > contract.get("max_files_changed", 0):
+                findings.append(f"changed {len(changed)} files; contract allows {contract.get('max_files_changed', 0)}")
+        if task is None:
+            findings.append("no task state")
+        elif task["status"] not in {"READY_FOR_AUDIT", "APPROVED", "DONE"}:
+            findings.append(f"task status is {task['status']}, expected READY_FOR_AUDIT or later")
+        if not receipt or receipt.get("status") != "PASS":
+            findings.append("no passing validation receipt")
+        else:
+            if receipt.get("fingerprint_after") != project_fingerprint(root):
+                findings.append("project changed after validation receipt")
+            if receipt.get("contract_sha256") != hashlib.sha256((root / ".governor" / "task-contract.json").read_bytes()).hexdigest():
+                findings.append("task contract changed after validation")
+            if receipt.get("policy_sha256") != hashlib.sha256((root / ".governor" / "policy.json").read_bytes()).hexdigest():
+                findings.append("policy changed after validation")
+        report = {"verdict": "PASS" if not findings else "FAIL", "task": task, "changed_files": changed, "evidence": receipt, "findings": findings}
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return 0 if not findings else 1
+    except Exception as exc:
+        print(json.dumps({"verdict": "FAIL", "findings": ["audit failed safely"], "error_type": type(exc).__name__}, ensure_ascii=False))
         return 1
 
 
@@ -195,17 +255,21 @@ def main() -> None:
     check.add_argument("--root", default=".")
     check.add_argument("--base", default="HEAD")
     task = sub.add_parser("task", help="Create and manage a persistent task contract")
-    task.add_argument("task_action", choices=["create", "inspect", "activate"])
+    task.add_argument("task_action", choices=["create", "inspect", "activate", "transition"])
     task.add_argument("task_id")
     task.add_argument("--objective", default="")
     task.add_argument("--allowed-path", dest="allowed_paths", action="append", default=[])
     task.add_argument("--forbidden-path", dest="forbidden_paths", action="append", default=[".governor/**"])
     task.add_argument("--required-command", dest="required_commands", action="append", default=[])
     task.add_argument("--max-files", type=int, default=10)
+    task.add_argument("--status", choices=["ACTIVE", "PAUSED", "BLOCKED", "READY_FOR_AUDIT", "APPROVED", "DONE"])
     task.add_argument("--root", default=".")
     validate = sub.add_parser("validate", help="Run required commands and create a fingerprinted receipt")
     validate.add_argument("--root", default=".")
     validate.add_argument("--timeout", type=int, default=900)
+    audit = sub.add_parser("audit", help="Produce a structured audit verdict from scope and evidence")
+    audit.add_argument("--root", default=".")
+    audit.add_argument("--base", default="HEAD")
     doctor = sub.add_parser("doctor", help="Inspect project configuration and hook installation")
     doctor.add_argument("--root", default=".")
     install = sub.add_parser("install", help="Install an integration without overwriting existing hooks")
@@ -222,6 +286,8 @@ def main() -> None:
         raise SystemExit(verify(args))
     if args.command == "validate":
         raise SystemExit(validate_command(args))
+    if args.command == "audit":
+        raise SystemExit(audit_command(args))
     if args.command == "doctor":
         raise SystemExit(doctor_command(args))
     if args.command == "install":
