@@ -10,10 +10,11 @@ import hashlib
 from pathlib import Path
 
 from .adapters import antigravity_output, normalize
-from .engine import append_event, evaluate, load_json, violation_count
+from .engine import append_event, evaluate, load_json, validate_profile, violation_count
 from .templates import write_templates
 from .state import TaskState
 from .evidence import latest_receipt, project_fingerprint, run_required
+from . import __version__
 
 
 def root_path(value: str = ".") -> Path:
@@ -190,7 +191,7 @@ def audit_command(args: argparse.Namespace) -> int:
                 findings.append("task contract changed after validation")
             if receipt.get("policy_sha256") != hashlib.sha256((root / ".governor" / "policy.json").read_bytes()).hexdigest():
                 findings.append("policy changed after validation")
-        report = {"verdict": "PASS" if not findings else "FAIL", "task": task, "changed_files": changed, "evidence": receipt, "findings": findings}
+        report = {"verdict": "PASS" if not findings else "FAIL", "task": task, "changed_files": changed, "evidence": receipt, "scope": {"status": "PASS" if not any("scope" in f or "path" in f for f in findings) else "FAIL"}, "tests": {"status": "PASS" if receipt and receipt.get("status") == "PASS" else "FAIL"}, "architecture": {"status": "MANUAL_REVIEW", "findings": []}, "regressions": {"status": "MANUAL_REVIEW", "findings": []}, "findings": [{"severity": "HIGH" if "outside scope" in f or "forbidden path" in f else "MEDIUM", "message": f} for f in findings]}
         print(json.dumps(report, ensure_ascii=False, indent=2))
         return 0 if not findings else 1
     except Exception as exc:
@@ -209,6 +210,7 @@ def doctor_command(args: argparse.Namespace) -> int:
         if checks["policy"] and checks["contract"]:
             from .engine import validate_documents
             validate_documents(load_json(root / ".governor" / "policy.json"), load_json(root / ".governor" / "task-contract.json"))
+            validate_profile(load_json(root / ".governor" / "project-profile.json"))
             checks["schema"] = True
         else:
             checks["schema"] = False
@@ -243,8 +245,28 @@ def install_command(args: argparse.Namespace) -> int:
     return 0
 
 
+def uninstall_command(args: argparse.Namespace) -> int:
+    root = root_path(args.root)
+    target = root / ".agents" / "hooks.json"
+    if not target.exists():
+        print(json.dumps({"status": "PASS", "removed": False, "reason": "Hook file does not exist."}, ensure_ascii=False))
+        return 0
+    try:
+        hooks = json.loads(target.read_text(encoding="utf-8"))
+        if not isinstance(hooks, dict):
+            raise ValueError("hooks.json must be an object")
+        removed = hooks.pop("agent-governor", None) is not None
+        target.write_text(json.dumps(hooks, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        print(json.dumps({"status": "PASS", "removed": removed, "path": str(target)}, ensure_ascii=False))
+        return 0
+    except (OSError, ValueError) as exc:
+        print(json.dumps({"status": "FAIL", "reason": "Could not safely update hooks.json.", "error_type": type(exc).__name__}, ensure_ascii=False))
+        return 1
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(prog="governor")
+    parser.add_argument("--version", action="version", version=__version__)
     sub = parser.add_subparsers(dest="command", required=True)
     init = sub.add_parser("init", help="Install a project governance profile")
     init.add_argument("path", nargs="?", default=".")
@@ -275,6 +297,9 @@ def main() -> None:
     install = sub.add_parser("install", help="Install an integration without overwriting existing hooks")
     install.add_argument("integration", choices=["antigravity"])
     install.add_argument("--root", default=".")
+    uninstall = sub.add_parser("uninstall", help="Remove only the Governor integration")
+    uninstall.add_argument("integration", choices=["antigravity"])
+    uninstall.add_argument("--root", default=".")
     args = parser.parse_args()
     if args.command == "init":
         write_templates(root_path(args.path), args.profile)
@@ -292,6 +317,8 @@ def main() -> None:
         raise SystemExit(doctor_command(args))
     if args.command == "install":
         raise SystemExit(install_command(args))
+    if args.command == "uninstall":
+        raise SystemExit(uninstall_command(args))
     raise SystemExit(task_command(args))
 
 
