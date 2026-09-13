@@ -175,7 +175,9 @@ def install_command(args: argparse.Namespace) -> int:
             return 1
         backup_path = target.with_suffix(".json.bak")
         shutil.copy2(target, backup_path)
-    existing["agent-governor"] = {"enabled": True, "PreToolUse": [{"matcher": "*", "hooks": [{"type": "command", "command": "governor hook --root .", "timeout": 10}]}]}
+    python_executable = sys.executable.replace("\\", "/")
+    hook_command = f'"{python_executable}" -m agent_governor.cli hook --root .'
+    existing["agent-governor"] = {"enabled": True, "PreToolUse": [{"matcher": "*", "hooks": [{"type": "command", "command": hook_command, "timeout": 10}]}]}
     target.write_text(json.dumps(existing, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print(json.dumps({"status": "PASS", "path": str(target), "backup": str(backup_path) if backup_path else None}, ensure_ascii=False))
     return 0
