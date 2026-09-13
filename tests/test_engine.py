@@ -31,6 +31,22 @@ class GovernorTests(unittest.TestCase):
         result = evaluate(self.root, {"tool": "run_command", "command": "git status", "path": ""})
         self.assertEqual("deny", result.decision)
 
+    def test_unknown_tool_is_blocked(self):
+        result = evaluate(self.root, {"tool": "mystery_tool", "command": "", "path": ""})
+        self.assertEqual("deny", result.decision)
+
+    def test_shell_file_mutation_is_blocked(self):
+        result = evaluate(self.root, {"tool": "run_command", "command": "echo bad > src/x.py", "path": ""})
+        self.assertEqual("deny", result.decision)
+
+    def test_empty_allowed_paths_deny_writes(self):
+        contract_path = self.root / ".governor" / "task-contract.json"
+        contract = json.loads(contract_path.read_text())
+        contract["task_id"] = "TEST-EMPTY"
+        contract_path.write_text(json.dumps(contract))
+        result = evaluate(self.root, {"tool": "write_to_file", "path": str(self.root / "src/x.py"), "command": ""})
+        self.assertEqual("deny", result.decision)
+
     def test_invalid_schema_fails_closed(self):
         policy = self.root / ".governor" / "policy.json"
         value = json.loads(policy.read_text())
