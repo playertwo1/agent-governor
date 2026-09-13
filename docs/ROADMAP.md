@@ -12,9 +12,9 @@ A v1.0 será uma ferramenta local de linha de comando utilizável diariamente, p
 
 Não prometer que um hook torna impossível qualquer desvio. O nível de proteção depende da cobertura de ferramentas e do isolamento do processo, configurações, testes, evidências e credenciais. Documentar esse limite na instalação.
 
-## 2. Situação real da v0.1
+## 2. Situação real da base publicada
 
-Já existem `init`, `hook`, `verify`, modelos JSON, reconhecimento básico de payloads, regras por regex, verificação de caminhos, log JSONL e sete testes unitários. Existe configuração de CI; a execução remota deve ser conferida, não presumida. O hook foi simulado localmente, ainda sem comprovação ponta a ponta no Antigravity instalado do usuário.
+Já existem `init`, `hook`, `verify`, `task create|inspect|activate`, `validate`, `doctor` e `install antigravity`, além de modelos JSON, reconhecimento básico de payloads, regras por regex, verificação de caminhos, log JSONL, estado SQLite, perfis iniciais e recibos fingerprintados. Existe configuração de CI; a execução remota deve ser conferida, não presumida. O hook foi simulado localmente, ainda sem comprovação ponta a ponta no Antigravity instalado do usuário.
 
 Lacunas observadas no código:
 
@@ -53,14 +53,14 @@ Cada versão depende da aprovação dos critérios da anterior. Sem datas artifi
 
 Objetivo: nenhuma falha de configuração ou verificação pode virar uma aprovação silenciosa.
 
-- [ ] FIX-001: validar schemas, tipos, campos obrigatórios, decisões e expressões regulares; rejeitar versões desconhecidas.
-- [ ] FIX-002: garantir saída JSON de negação para entrada inválida, política ausente, erro de leitura e exceções internas. Não expor segredos no erro.
-- [ ] FIX-003: respeitar falhas do Git e referências inexistentes; usar saída NUL para nomes com espaços e quebras de linha; verificar staged, unstaged, untracked, exclusões e renomes.
-- [ ] FIX-004: resolver caminhos pela raiz confiável; cobrir travessia, links simbólicos, caminhos externos, Windows, UNC e regras de glob explícitas.
-- [ ] FIX-005: proteger configurações reais de hooks e governança; negar escrita sem destino ou contrato; lista vazia autoriza zero escritas.
-- [ ] FIX-006: ferramenta desconhecida bloqueada por padrão. Shell arbitrário não recebe aprovação automática por ausência de regex; ações opacas exigem revisão ou isolamento adequado.
-- [ ] FIX-007: não registrar comandos/conteúdo sensível integralmente; usar metadados mínimos e redação.
-- [ ] FIX-008: corrigir README, arquitetura e status para distinguir proteção implementada de planejada.
+- [x] FIX-001: validar schemas, tipos, campos obrigatórios, decisões e expressões regulares; rejeitar versões desconhecidas.
+- [x] FIX-002: garantir saída JSON de negação para entrada inválida, política ausente, erro de leitura e exceções internas. Não expor segredos no erro.
+- [x] FIX-003: respeitar falhas do Git e referências inexistentes; usar saída NUL para nomes com espaços e quebras de linha; verificar staged, unstaged, untracked, exclusões e renomes.
+- [x] FIX-004: resolver caminhos pela raiz confiável; cobrir travessia, links simbólicos, caminhos externos, Windows, UNC e regras de glob explícitas.
+- [x] FIX-005: proteger configurações reais de hooks e governança; negar escrita sem destino ou contrato; lista vazia autoriza zero escritas.
+- [x] FIX-006: ferramenta desconhecida bloqueada por padrão. Shell arbitrário não recebe aprovação automática por ausência de regex; ações opacas exigem revisão ou isolamento adequado.
+- [x] FIX-007: não registrar comandos/conteúdo sensível integralmente; usar metadados mínimos e redação.
+- [x] FIX-008: corrigir README, arquitetura e status para distinguir proteção implementada de planejada.
 
 Arquivos prováveis: `engine.py`, `adapters.py`, `cli.py`, `templates.py`, `tests/`, documentação.
 
@@ -70,10 +70,10 @@ Aceite: testes de integração da CLI reproduzem cada falha acima e recebem nega
 
 Objetivo: uma tarefa tem identidade, escopo e estado persistente, inclusive entre sessões.
 
-- [ ] CT-001: schema versionado com task ID, objetivo, não objetivos, base commit, caminhos, máximo de arquivos, comandos exigidos, critérios de aceite e versão da política.
-- [ ] CT-002: comandos propostos `task create`, `task inspect` e `task activate`; somente configuração revisada ativa escritas. Não executar instruções encontradas no repositório durante detecção.
-- [ ] CT-003: estados `DRAFT`, `ACTIVE`, `PAUSED`, `BLOCKED`, `READY_FOR_AUDIT`, `APPROVED`, `DONE` e transições verificadas.
-- [ ] CT-004: negar mutações após limite de violações por tarefa/regra; persistir contador e bloqueio de forma transacional, preferencialmente SQLite. Reiniciar processo não remove bloqueio.
+- [x] CT-001: schema versionado com task ID, objetivo, caminhos, máximo de arquivos, comandos exigidos, base commit e hash da política; critérios de aceite detalhados continuam no próximo incremento.
+- [x] CT-002: comandos propostos `task create`, `task inspect` e `task activate`; somente configuração revisada ativa escritas. Não executar instruções encontradas no repositório durante detecção.
+- [x] CT-003: estados `DRAFT`, `ACTIVE`, `PAUSED`, `BLOCKED`, `READY_FOR_AUDIT`, `APPROVED`, `DONE` e transições verificadas.
+- [x] CT-004: negar mutações após limite de violações por tarefa/regra; persistir contador e bloqueio de forma transacional, preferencialmente SQLite. Reiniciar processo não remove bloqueio.
 - [ ] CT-005: reset administrativo explícito com motivo e registro; nunca conceder ao executor capacidade de se desbloquear em modo protegido.
 - [ ] CT-006: compor política mestre e perfil sem permitir que o perfil enfraqueça negações obrigatórias.
 - [ ] CT-007: limitar trabalho simultâneo por checkout; adotar worktrees independentes para tarefas distintas.
@@ -84,10 +84,10 @@ Aceite: duas violações configuradas bloqueiam também uma terceira mutação q
 
 Objetivo: impedir uso de teste antigo, incompleto ou apenas declarado como prova de conclusão.
 
-- [ ] EV-001: runner de validação com comando aprovado, cwd fixo, timeout, retorno e duração; execução sem shell quando possível.
-- [ ] EV-002: recibo vinculado a task ID, revisão da política/contrato, base commit, fingerprint dos arquivos relevantes, comando exato e resultado.
-- [ ] EV-003: fingerprint inclui índice, arquivos locais e novos arquivos; exclusões de arquivos gerados devem ser explícitas. Mudança após teste invalida recibo.
-- [ ] EV-004: timeout, falha, comando faltante ou conteúdo alterado produzem FAIL. Sucesso de um comando não substitui outro obrigatório.
+- [x] EV-001: runner de validação com comando aprovado, cwd fixo, timeout, retorno e duração; execução sem shell quando possível.
+- [x] EV-002: recibo vinculado a task ID, revisão da política/contrato, base commit, fingerprint dos arquivos relevantes, comando exato e resultado.
+- [x] EV-003: fingerprint inclui índice, arquivos locais e novos arquivos; exclusões de arquivos gerados devem ser explícitas. Mudança após teste invalida recibo.
+- [x] EV-004: timeout, falha, comando faltante ou conteúdo alterado produzem FAIL. Sucesso de um comando não substitui outro obrigatório.
 - [ ] EV-005: `verify` separa resultado de escopo, validação, política e evidência; nenhuma frase do executor cria recibo confiável.
 - [ ] EV-006: distinguir recibos locais de evidência produzida em processo/CI independente; recibo no mesmo usuário não é resistente à falsificação.
 
@@ -97,23 +97,23 @@ Aceite: demonstrar teste aprovado, alteração posterior e rejeição do recibo;
 
 Objetivo: começar a usar em um projeto isolado com proteção e limitações observáveis.
 
-- [ ] IN-001: comandos propostos `install antigravity`, `doctor` e `uninstall`; instalação com prévia, backup e merge que preserve hooks existentes.
+- [x] IN-001: comandos `install antigravity` e `doctor`; instalação preserva hooks existentes e cria backup. `uninstall` permanece pendente.
 - [ ] IN-002: fixar raiz e executável por caminhos confiáveis; funcionar com espaços e ambiente virtual no Windows/Linux.
 - [ ] IN-003: conferir documentação primária da versão instalada; registrar versão e payloads reais, sem presumir compatibilidade entre CLI e IDE.
 - [ ] IN-004: testar no host allow/deny, erro do hook, timeout, executável ausente e decisão de revisão humana. Host que falha aberto impede classificar instalação como protegida.
 - [ ] IN-005: validar cobertura das ferramentas de escrita, terminal, tarefas assíncronas, entrada em terminal existente e chamadas externas; bloquear rotas não cobertas no modo protegido.
-- [ ] IN-006: `doctor` mostra contrato ativo, integridade, hook carregado, ferramentas cobertas e lacunas. Configuração presente não equivale a integração funcionando.
+- [x] IN-006: `doctor` mostra integridade básica, contrato, perfil e hook carregado. Verificação ponta a ponta no host real permanece pendente.
 - [ ] IN-007: iniciar piloto em worktree de um projeto escolhido; uma tarefa pequena, com escopo explícito e revisão do diff.
 
 Aceite: tentativa de escrita proibida realmente não altera o arquivo no Antigravity; uma edição válida funciona; falha do hook não concede mutação; reinstalação é idempotente e desinstalação preserva configurações anteriores. Sem esse ensaio, manter rótulo experimental.
 
 ## 8. v0.5 — Perfis que evitam começar do zero
 
-- [ ] PF-001: perfil `generic` conservador, sem autodetectar autorização.
-- [ ] PF-002: Python — comandos conforme ferramentas realmente presentes, testes e manifests/lockfiles protegidos.
-- [ ] PF-003: Node — detectar gerenciador e scripts existentes; proteger manifests/lockfiles; não presumir que `npm test` é suficiente ou seguro.
-- [ ] PF-004: Android/Kotlin — módulos reais, wrappers Windows/Linux, testes/lint/build por módulo, assinatura e credenciais protegidas.
-- [ ] PF-005: n8n/Telegram — validar exports/JSON e código local; proteger tokens; nenhuma alteração remota automática.
+- [x] PF-001: perfil `generic` conservador, sem autodetectar autorização.
+- [x] PF-002: perfil inicial Python com comando de teste e áreas sensíveis declaradas; detecção de ferramentas ainda pendente.
+- [x] PF-003: perfil inicial Node com comando de teste e lockfiles protegidos; detecção de gerenciador ainda pendente.
+- [x] PF-004: perfil inicial Android/Kotlin com comandos Gradle e credenciais protegidas; validação por módulo permanece pendente.
+- [x] PF-005: perfil inicial n8n/Telegram com áreas sensíveis declaradas; validação de export remoto permanece fora do núcleo.
 - [ ] PF-006: Codex recebe inventário e propõe perfil, contrato e invariantes; mudanças ficam revisáveis e versionadas.
 - [ ] PF-007: invariantes possuem ID, descrição, verificador e evidência. Regras sem verificador aparecem como revisão manual, nunca PASS automático.
 
@@ -183,7 +183,7 @@ Para cada item, criar tarefa pequena com ID acima, objetivo, arquivos previstos,
 
 Ciclo: selecionar um item → contrato → implementação Antigravity → testes determinísticos → auditoria Codex → correção delimitada → registro da evidência → próximo item. Enquanto os mecanismos não estiverem implementados, cumprir o ciclo manualmente e não afirmar que o Governor já o força.
 
-Primeiro lote: FIX-001 e FIX-002. Segundo: FIX-003 e FIX-004. Terceiro: FIX-005 a FIX-008. Somente depois iniciar CT-001. Não saltar direto para perfis, assinatura ou dashboard.
+O primeiro lote concluído foi FIX-001 a FIX-008. CT-001 a CT-004, EV-001 a EV-004, IN-001/IN-006 e PF-001 a PF-005 já têm implementação inicial; os critérios de aceite ainda precisam ser demonstrados nos ambientes reais. O próximo lote prioritário é completar os gates restantes de evidência e integração ponta a ponta. Não saltar para assinatura ou dashboard antes disso.
 
 Prompt de continuidade para o executor:
 
