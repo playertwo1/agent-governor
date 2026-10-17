@@ -5,3 +5,8 @@ dist/
 build/
 *.egg-info/
 
+
+# Segredos e configuração local (nunca versionar)
+.env
+.env.*
+!.env.example
