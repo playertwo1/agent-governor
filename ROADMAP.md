@@ -4,6 +4,25 @@ Status: v1.0.0 local instalável publicada; critérios que exigem host real, iso
 Base inspecionada: fundação v0.1 publicada em `f6608d51c769bcb8f4e7580efa0964f4a1d16003`.
 Este documento substitui o roadmap inicial. Em conflito com o resumo antigo do README, esta sequência prevalece.
 
+## Marcos (formato ideias_standard)
+
+Estado de retomada: [`STATE.md`](STATE.md). O detalhe de cada versão está nas seções abaixo.
+
+| Marco | Resultado verificável | Estado | Gate |
+|---|---|---|---|
+| v0.1.1 | Falhas de bloqueio e validação corrigidas (FIX-001..008) | DONE | aceite da §4 |
+| v0.2 | Contrato e circuit breaker reais | IN_PROGRESS (CT-005..007 abertos) | aceite da §5 |
+| v0.3 | Evidências antes de concluir | IN_PROGRESS (EV-006 aberto) | aceite da §6 |
+| v0.4 | Instalação e piloto Antigravity | IN_PROGRESS (IN-002..005, IN-007 abertos) | aceite da §7 |
+| v0.5 | Perfis reutilizáveis | IN_PROGRESS (PF-006, PF-007 abertos) | aceite da §8 |
+| v0.6 | Auditoria independente e merge gate | IN_PROGRESS (AU-004..006 abertos) | aceite da §9 |
+| v0.7 | Isolamento e confiança | PLANNED | aceite da §10 |
+| v0.8 | Compatibilidade e recuperação | PLANNED | aceite da §11 |
+| v0.9 | Piloto de aceitação | PLANNED | aceite da §12 |
+| v1.0 | Release reproduzível e operação validada | IN_PROGRESS (release local 1.0.0 publicada; itens externos da §13 abertos) | Definition of Done da §13 |
+
+**Marco ativo:** v1.0, validação operacional. IDs abertos na §13: gate remoto, isolamento verificado, piloto, pacote com checksums e tag. Evidência exigida: a do aceite da §7 (escrita proibida não altera o arquivo no Antigravity real) e da §13.
+
 ## 1. Resultado esperado
 
 Instalar um núcleo reutilizável, configurar cada projeto e executar tarefas delimitadas no Antigravity, com verificação determinística e auditoria independente do Codex. Rafael define objetivo e autorizações; o executor implementa; o Governor aplica restrições; o auditor avalia a entrega.
@@ -189,4 +208,4 @@ O primeiro lote concluído foi FIX-001 a FIX-008. CT-001 a CT-004, EV-001 a EV-0
 
 Prompt de continuidade para o executor:
 
-> Leia AGENTS.md, docs/ARCHITECTURE.md e docs/ROADMAP.md. Inspecione a versão atual antes de editar. Comece pelo primeiro item pendente da v0.1.1, descreva um contrato pequeno com arquivos previstos e testes de aceite e implemente esse item. Não avance de versão sem cumprir os critérios. Entregue diff, resultados reais e limitações para auditoria do Codex. Não enfraqueça regras nem declare proteção que não foi demonstrada.
+> Leia AGENTS.md, STATE.md, docs/ARCHITECTURE.md e ROADMAP.md. Inspecione a versão atual antes de editar. Comece pelo primeiro item pendente da v0.1.1, descreva um contrato pequeno com arquivos previstos e testes de aceite e implemente esse item. Não avance de versão sem cumprir os critérios. Entregue diff, resultados reais e limitações para auditoria do Codex. Não enfraqueça regras nem declare proteção que não foi demonstrada.

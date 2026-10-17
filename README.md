@@ -124,7 +124,16 @@ Os projetos `roboticforce/agent-guardrails`, `laundromatic/agent-guardrails` e `
 - **v1.0.0 entregue:** motor fail-closed, contrato, Antigravity hook, scope check, log, circuit breaker, recibos, perfis, auditoria e instalador.
 - **Pós-v1.0:** bundles assinados, armazenamento externo append-only, isolamento forte e adapters adicionais.
 
-Veja [ROADMAP.md](docs/ROADMAP.md) e [ARCHITECTURE.md](docs/ARCHITECTURE.md).
+Veja [ROADMAP.md](ROADMAP.md) e [ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+Onde paramos e próxima ação: [STATE.md](STATE.md). Visão do projeto: [PROJECT.md](PROJECT.md). Regras para agentes: [AGENTS.md](AGENTS.md).
+
+## Como verificar
+
+```bash
+python -m pip install -e .
+python -m unittest discover -s tests -v
+```
 
 O passo a passo completo para instalar em novos projetos está em [INSTALL.md](docs/INSTALL.md). O histórico da release está em [CHANGELOG.md](CHANGELOG.md).
 
